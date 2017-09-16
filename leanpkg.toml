@@ -1,0 +1,6 @@
+[package]
+name = "lean-monotone"
+version = "0.1"
+
+[dependencies]
+lean-tidy = {git = "git@github.com:semorrison/lean-tidy.git", rev = "e767e259bf76c69edfd4ab8af1b76e6f1ed67f48"}
