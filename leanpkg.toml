@@ -1,6 +1,7 @@
 [package]
 name = "lean-monotone"
 version = "0.1"
+lean_version = "master"
 
 [dependencies]
-lean-tidy = {git = "git@github.com:semorrison/lean-tidy.git", rev = "e767e259bf76c69edfd4ab8af1b76e6f1ed67f48"}
+lean-tidy = {git = "git@github.com:semorrison/lean-tidy.git", rev = "47c92fec49df7274f37a9ce14c06c345aea66a21"}

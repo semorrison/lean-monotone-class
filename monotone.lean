@@ -3,7 +3,6 @@ import data.set
 
 open set
 
-
 structure boolean_algebra ( α : Type ) :=
   ( contains : set (set α) )
   ( contains_universe : contains univ )
@@ -64,12 +63,11 @@ begin
   apply exists.elim a p, 
 end
 
-
 structure sigma_algebra ( α : Type ) extends boolean_algebra α :=
   ( countable_unions        : ∀ { f : ℕ → set α }, (Π n : ℕ, contains (f n)) → contains (countable_union        f) )
   ( countable_intersections : ∀ { f : ℕ → set α }, (Π n : ℕ, contains (f n)) → contains (countable_intersection f) )
 
--- It requires classical logic, apparently, do deduce countable intersections from countable unions.
+-- It requires classical logic, apparently, to deduce countable intersections from countable unions.
 
 structure is_sigma_algebra { α } ( contains : set (set α ) ) :=
   ( sigma_algebra : sigma_algebra α )
@@ -133,13 +131,62 @@ structure decreasing_sequence ( α : Type ) :=
   ( sets : ℕ → set α )
   ( decreasing : ∀ n : ℕ, (sets (n+1)) ⊆ (sets n) )
 
+attribute [applicable] decreasing_sequence.decreasing
+
 definition countable_decreasing_intersection { α } ( f: decreasing_sequence α ) : set α := countable_intersection f.sets
 
 structure increasing_sequence ( α : Type ) := 
   ( sets : ℕ → set α )
-  ( decreasing : ∀ n : ℕ, (sets n) ⊆ (sets (n+1)) )
+  ( increasing : ∀ n : ℕ, (sets n) ⊆ (sets (n+1)) )
+
+attribute [applicable] increasing_sequence.increasing
 
 definition countable_increasing_union { α } ( f: increasing_sequence α ) : set α := countable_union f.sets
+
+@[applicable] lemma compl_subset_compl { α } ( X Y : set α ) ( p : Y ⊆ X ) : (-X) ⊆ (-Y) :=
+begin
+  tidy,
+  unfold set.subset,
+  unfold set.subset at p,
+  intros,
+  unfold set.compl,
+  unfold set.compl at a_1,
+  tidy,
+  unfold set.mem,
+  unfold set.mem at a_1,
+  intros,
+  exact a_1 (p a_2),
+end
+
+def complement_decreasing_sequence { α } ( f : decreasing_sequence α ) : increasing_sequence α :=
+{
+  sets := λ n, -(f.sets n),
+  increasing := ♯ 
+}
+def complement_increasing_sequence { α } ( f : increasing_sequence α ) : decreasing_sequence α :=
+{
+  sets := λ n, -(f.sets n),
+  decreasing := ♯
+}
+
+lemma complement_decreasing_intersection { α } ( f: decreasing_sequence α ) : -(countable_decreasing_intersection f) = countable_increasing_union (complement_decreasing_sequence f) :=
+begin
+  tidy,
+  unfold compl,
+  unfold complement_decreasing_sequence,
+  unfold countable_decreasing_intersection,
+  unfold countable_increasing_union,
+  unfold countable_intersection,
+  unfold countable_union,
+  tidy,
+  unfold set.mem,
+  unfold compl,
+  tidy,
+  admit
+end
+
+lemma complement_increasing_union { α } ( f: increasing_sequence α ) : -(countable_increasing_union f) = countable_decreasing_intersection (complement_increasing_sequence f) := sorry
+
 
 structure monotone_class ( α : Type ) :=
   ( contains : set (set α) )
@@ -207,33 +254,58 @@ definition monotone_class.complement { α } ( M : monotone_class α ) : monotone
   contains := λ s, M.contains (- s),
   countable_decreasing_intersections := begin
                                           intros f w,
-                                          admit,
+                                          rewrite complement_decreasing_intersection,
+                                          apply M.countable_increasing_unions,
+                                          unfold complement_decreasing_sequence,
+                                          tidy,
                                         end,
-  countable_increasing_unions        := sorry
+  countable_increasing_unions        := begin
+                                          intros f w,
+                                          rewrite complement_increasing_union,
+                                          apply M.countable_decreasing_intersections,
+                                          unfold complement_increasing_sequence,
+                                          tidy,
+                                        end
 }
 
 lemma monotone_class_generated_by_a_boolean_algebra_equals_its_complement { α } ( B : boolean_algebra α ) : (coarsest_monotone_class_containing B.contains).contains = (coarsest_monotone_class_containing B.contains).complement.contains :=
 begin
-  apply subset.antisymm,
+  let Q := λ X : set α, (coarsest_monotone_class_containing (B.contains)).contains X ∧ (coarsest_monotone_class_containing (B.contains)).contains (compl X),
+  have M' : is_monotone_class Q,
+  admit,
+  let M := M'.monotone_class,
+  have p : M.contains ⊆ (coarsest_monotone_class_containing (B.contains)).contains,
+  admit,
+  have q : (coarsest_monotone_class_containing (B.contains)).contains ⊆ M.contains,
+  admit,
+  have w : (coarsest_monotone_class_containing (B.contains)).contains = M.contains,
   {
-    -- FIXME apply is sad :-( Why can't it infer the arguments?
-    apply monotone_class_containing_contains_coarsest_monotone_class_containing
-      B.contains
-      (monotone_class.complement (coarsest_monotone_class_containing (B.contains))),
-    tidy,
-    unfold set.subset,
-    intros s w,
-    tidy,
-    unfold set.mem,
-    unfold set.mem at w,
-    intros M,
-    apply M.containing,
-    exact B.complements w
+    apply subset.antisymm,
+    exact q, exact p
   },
-  {
-    -- but how do we do this?
-    admit
-  }
+  rewrite w,
+  unfold monotone_class.complement,
+  admit,
+  -- apply subset.antisymm,
+  -- {
+  --   -- FIXME apply is sad :-( Why can't it infer the arguments?
+  --   apply monotone_class_containing_contains_coarsest_monotone_class_containing
+  --     B.contains
+  --     (monotone_class.complement (coarsest_monotone_class_containing (B.contains))),
+  --   tidy,
+  --   unfold set.subset,
+  --   intros s w,
+  --   tidy,
+  --   unfold set.mem,
+  --   unfold set.mem at w,
+  --   intros M,
+  --   apply M.containing,
+  --   exact B.complements w
+  -- },
+  -- {
+  --   -- but how do we do this?
+  --   admit
+  -- }
 end
 
 lemma monotone_class_generated_by_a_boolean_algebra_is_a_sigma_algebra 
