@@ -187,11 +187,29 @@ end
 
 lemma complement_increasing_union { α } ( f: increasing_sequence α ) : -(countable_increasing_union f) = countable_decreasing_intersection (complement_increasing_sequence f) := sorry
 
-
 structure monotone_class ( α : Type ) :=
   ( contains : set (set α) )
   ( countable_decreasing_intersections : ∀ f : decreasing_sequence α, (Π n : ℕ, contains (f.sets n)) → contains (countable_decreasing_intersection f)) 
   ( countable_increasing_unions        : ∀ f : increasing_sequence α, (Π n : ℕ, contains (f.sets n)) → contains (countable_increasing_union        f))
+
+instance { α } : has_subset (monotone_class α) := {
+  subset := λ m n, m.contains ⊆ n.contains
+}
+
+@[applicable] lemma monotone_class.equality { α } { m n : monotone_class α } ( p : m.contains = n.contains ) : m = n :=
+begin
+  cases m,
+  cases n,
+  tidy,
+end
+
+@[applicable] lemma monotone_class.antisymmetry { α } { m n : monotone_class α } ( p : m ⊆ n ) ( q : n ⊆ m ) : m = n :=
+begin
+  apply monotone_class.equality,
+  apply subset.antisymm,
+  exact p,
+  exact q,
+end
 
 structure is_monotone_class { α } ( contains : set (set α ) ) :=
   ( monotone_class : monotone_class α )
@@ -212,7 +230,29 @@ definition intersection_of_monotone_classes { α β : Type } ( classes : α → 
                                         end
 }
 
-definition monotone_class_coarser { α } ( B C : monotone_class α ) := C.contains ⊆ B.contains
+@[reducible] definition monotone_class.intersect { α : Type } ( m n : monotone_class α ) : monotone_class α := 
+{
+  contains := λ s, m.contains s ∧ n.contains s,
+  countable_decreasing_intersections := begin
+                                          intros,
+                                          split,
+                                          let v := λ n, (a n).left,
+                                          exact m.countable_decreasing_intersections f v,
+                                          let w := λ n, (a n).right,
+                                          exact n.countable_decreasing_intersections f w,
+                                 end,
+  countable_increasing_unions := begin
+                                   intros,
+                                   split,
+                                   let v := λ n, (a n).left,
+                                   exact m.countable_increasing_unions f v,
+                                   let w := λ n, (a n).right,
+                                   exact n.countable_increasing_unions f w,
+                                 end
+}
+instance { α } : has_inter (monotone_class α) := {
+  inter := monotone_class.intersect
+}
 
 structure monotone_class_containing { α } ( X : set (set α) ) := 
   ( monotone_class      : monotone_class α )
@@ -250,7 +290,7 @@ begin
   tidy,
 end
 
-definition monotone_class.complement { α } ( M : monotone_class α ) : monotone_class α := {
+@[reducible] definition monotone_class.complement { α } ( M : monotone_class α ) : monotone_class α := {
   contains := λ s, M.contains (- s),
   countable_decreasing_intersections := begin
                                           intros f w,
@@ -270,42 +310,27 @@ definition monotone_class.complement { α } ( M : monotone_class α ) : monotone
 
 lemma monotone_class_generated_by_a_boolean_algebra_equals_its_complement { α } ( B : boolean_algebra α ) : (coarsest_monotone_class_containing B.contains).contains = (coarsest_monotone_class_containing B.contains).complement.contains :=
 begin
-  let Q := λ X : set α, (coarsest_monotone_class_containing (B.contains)).contains X ∧ (coarsest_monotone_class_containing (B.contains)).contains (compl X),
-  have M' : is_monotone_class Q,
-  admit,
-  let M := M'.monotone_class,
-  have p : M.contains ⊆ (coarsest_monotone_class_containing (B.contains)).contains,
-  admit,
-  have q : (coarsest_monotone_class_containing (B.contains)).contains ⊆ M.contains,
-  admit,
-  have w : (coarsest_monotone_class_containing (B.contains)).contains = M.contains,
-  {
-    apply subset.antisymm,
-    exact q, exact p
+  let C := coarsest_monotone_class_containing (B.contains),
+  let D := C ∩ (C.complement),
+  have p : D ⊆ C, { 
+    tidy,
+    unfold set.mem,
+    unfold set.mem at a_1,
+    tidy,
+    exact (a_1.left a_2)
   },
-  rewrite w,
-  unfold monotone_class.complement,
-  admit,
-  -- apply subset.antisymm,
-  -- {
-  --   -- FIXME apply is sad :-( Why can't it infer the arguments?
-  --   apply monotone_class_containing_contains_coarsest_monotone_class_containing
-  --     B.contains
-  --     (monotone_class.complement (coarsest_monotone_class_containing (B.contains))),
-  --   tidy,
-  --   unfold set.subset,
-  --   intros s w,
-  --   tidy,
-  --   unfold set.mem,
-  --   unfold set.mem at w,
-  --   intros M,
-  --   apply M.containing,
-  --   exact B.complements w
-  -- },
-  -- {
-  --   -- but how do we do this?
-  --   admit
-  -- }
+  have q : B.contains ⊆ D.contains, {
+    tidy,
+    unfold set.mem,
+    tidy,
+    exact a_2.containing a a_1,
+    exact a_2.containing (compl a) (B.complements a_1),
+  },
+  have r : C ⊆ D, {
+    admit,
+  },
+  have s : C = D, {  },
+  admit
 end
 
 lemma monotone_class_generated_by_a_boolean_algebra_is_a_sigma_algebra 
